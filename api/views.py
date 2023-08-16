@@ -400,45 +400,46 @@ def update_course_description(request): # 프론트로부터 넘겨 받아야 �
 
 # 12. 로그인한 수강자가 자신이 구매한 강좌에 대한 강의들을 시청할 수 있도록 특정 강의 영상을 불러오는 API
 @api_view(['GET'])
-@permission_classes((permissions.IsAuthenticated,)) 
-def get_course_videos(request): # 프론트로부터 받아야할 것들: course_id, order_in_course
+@permission_classes((permissions.IsAuthenticated,))
+def get_course_videos(request):
     user = request.user
     course_id = request.GET.get('course_id')
     order_in_course = request.GET.get('order_in_course')
 
-    # if user.is_instructor: # User가 강사라면 -> 예외처리
-    #     return Response({"error": "User is not Student"}, status=status.HTTP_400_BAD_REQUEST)
-
-    try: # 수강자가 해당 강좌를 듣고 있는지 체크 -> 예외처리
+    try:
         enroll = Enroll.objects.get(user=user, course_id=course_id)
     except ObjectDoesNotExist:
         return Response({"error": "This Enroll not found."}, status=404)
     
-    # 비디오 모델에서 
-    try: # 현재 그 강좌에 해당 번째 강의 비디오가 있는지 여부 체크 -> 예외처리
+    try:
         video = Video.objects.get(course_id=course_id, order_in_course=order_in_course)
     except ObjectDoesNotExist:
         return Response({"error": "This video not found."}, status=404)
     
-    # 현재 수강하려고 하는 비디오의 강좌 정보를 불러오기
     try:
         course = Course.objects.get(id = course_id)
     except ObjectDoesNotExist:
-        return Response({"error": "There is no Course"}, status=404)    
-    
-    # 해당 유저와 강좌에 대한 기존 기록이 있는지 확인
-    recentlyWatched, created = RecentlyWatched.objects.get_or_create(  # recentlyWatched: 검색되거나, 새로 생성된 객체 가르키는 변수
-        user=user,                                                     # created: 객체가 새로 생성되었으면 True, 기존에 존재했으면 False
-        course=course
-    )
+        return Response({"error": "There is no Course"}, status=404)
 
-    # 기존 기록이 있으면 시간만 현재 시간으로 업데이트!
-    if not created: 
+    # 해당 강좌의 전체 비디오 목록에서 현재 비디오를 제외함
+    videos = Video.objects.filter(course_id=course_id).exclude(id=video.id).order_by('order_in_course')
+    
+    recentlyWatched, created = RecentlyWatched.objects.get_or_create(user=user, course=course)
+
+    if not created:
         recentlyWatched.watched_at = timezone.now()
         recentlyWatched.save()
     
-    serializer = GetCourseVideoSerializer(video)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    # 강의 및 전체 비디오 정보를 시리얼라이즈
+    video_serializer = GetCourseVideoSerializer(video)
+    videos_serializer = GetCourseVideoSerializer(videos, many=True)
+    
+    # 특정 강의 정보와 전체 비디오 목록을 함께 반환
+    response_data = {
+        'current_video': video_serializer.data,
+        'else_videos': videos_serializer.data
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
 
 
 # # 13. 로그인한 수강자가 가장 최근에 수강한 강좌를 불러오는 API (정연)
