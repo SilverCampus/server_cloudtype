@@ -431,8 +431,8 @@ def get_course_videos(request):
         recentlyWatched.save()
     
     # 강의 및 전체 비디오 정보를 시리얼라이즈
-    video_serializer = GetCourseVideoSerializer(video)
-    videos_serializer = GetCourseVideoSerializer(videos, many=True)
+    video_serializer = GetCourseVideoSerializer(video, context={'user':user})
+    videos_serializer = GetCourseVideoSerializer(videos, many=True, context={'user':user})
     
     # 특정 강의 정보와 전체 비디오 목록을 함께 반환
     response_data = {

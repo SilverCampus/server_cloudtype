@@ -262,11 +262,24 @@ class CourseDescriptionUpdateSerializer(serializers.ModelSerializer):
         model = Course
         fields = '__all__'
 
+
 class GetCourseVideoSerializer(serializers.ModelSerializer):
+    completed = serializers.SerializerMethodField() # 완강 여부 시리얼라이저 변수 추가
+
     class Meta:
         model = Video
-        fields = '__all__'
+        fields = ['id', 'title', 'video_file', 'course', 'order_in_course', 'completed']
 
+    def get_completed(self, obj):
+        user = self.context.get('user') # user 받아오기
+        
+        try:
+            videocompletion = VideoCompletion.objects.get(user=user, video=obj)
+        except ObjectDoesNotExist:
+            return False
+        
+        return True
+    
 
 class GetRecentlyWatchedCoursesSerializer(serializers.ModelSerializer):
     class Meta:
