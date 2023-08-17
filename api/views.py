@@ -491,8 +491,8 @@ def get_course_videos(request):
 def get_user_courses(request):
     user = request.user
 
-    if user.is_instructor:
-        return Response({"error": "User is not Student"}, status=status.HTTP_400_BAD_REQUEST)
+    # if user.is_instructor:
+    #     return Response({"error": "User is not Student"}, status=status.HTTP_400_BAD_REQUEST)
 
     # 최근에 시청한 강좌를 가져옴
     recently_watched = RecentlyWatched.objects.filter(user=user).order_by('-watched_at')
