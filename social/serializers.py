@@ -59,7 +59,7 @@ class GetAllBoardPostsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BoardPost
-        fields = ['user_name', 'user_grade', 'content', 'video', 'video_thumbnail', 'created_at', 'hashtag_name', 'is_liked']
+        fields = ['id', 'user_name', 'user_grade', 'content', 'video', 'video_thumbnail', 'created_at', 'hashtag_name', 'is_liked']
         
 
     def get_hashtag_name(self, obj):
@@ -75,9 +75,9 @@ class GetAllBoardPostsSerializer(serializers.ModelSerializer):
         return True         
     
     def get_user_name(self, obj):
-        user = self.context.get('user')
+        user = obj.user
         return user.nickname
     
     def get_user_grade(self, obj):
-        user = self.context.get('user')
+        user = obj.user
         return user.grade
