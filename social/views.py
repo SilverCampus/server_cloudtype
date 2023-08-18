@@ -126,21 +126,22 @@ def post_upload(request):
         except Hashtag.DoesNotExist:
             pass  # 존재하지 않는 해시태그 ID인 경우 무시
 
-    # 영상에서 썸네일 생성
-    if video_file:
-        with VideoFileClip(video_file.temporary_file_path()) as clip:
-            thumbnail_path = os.path.join("/tmp", f"thumb_{os.path.basename(video_file.name)}.png")
-            clip.save_frame(thumbnail_path, t=1.00)  # 1초 지점의 프레임 저장
+    # # 영상에서 썸네일 생성
+    # if video_file:
+    #     with VideoFileClip(video_file.temporary_file_path()) as clip:
+    #         thumbnail_path = os.path.join("/tmp", f"thumb_{os.path.basename(video_file.name)}.png")
+    #         clip.save_frame(thumbnail_path, t=1.00)  # 1초 지점의 프레임 저장
 
-            with open(thumbnail_path, 'rb') as thumb_file:
-                # 썸네일을 Django의 FileField로 변환하여 저장
-                post.image.save(f"thumb_{video_file.name}.png", ContentFile(thumb_file.read()))
-                os.remove(thumbnail_path)  # 임시 썸네일 파일 삭제
+    #         with open(thumbnail_path, 'rb') as thumb_file:
+    #             # 썸네일을 Django의 FileField로 변환하여 저장
+    #             post.image.save(f"thumb_{video_file.name}.png", ContentFile(thumb_file.read()))
+    #             os.remove(thumbnail_path)  # 임시 썸네일 파일 삭제
 
     post.save()
 
     serializer = PostUploadSerializer(post)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 ## 5. hashtag 리스트 불러오는 api
 @api_view(['GET'])
@@ -165,3 +166,6 @@ def my_posts(request):
     posts = BoardPost.objects.filter(user=user).order_by('-created_at')  # 최신글부터 가져오기 위해 '-created_at' 사용
     serializer = BoardPostSerializer(posts, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
