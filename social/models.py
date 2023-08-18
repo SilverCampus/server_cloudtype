@@ -9,13 +9,14 @@ class Hashtag(models.Model):
 
 class BoardPost(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    title = models.CharField(max_length=200)
+    title = models.CharField(max_length=200,)
     content = models.TextField()
     image = models.ImageField(upload_to='social_posts/images/', null=True, blank=True)  
     video = models.FileField(upload_to='social_posts/videos/', null=True, blank=True)
     video_thumbnail = models.ImageField(upload_to='social_posts/thumbnails/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    hashtags = models.ManyToManyField(Hashtag, related_name='posts')
+    # hashtags = models.ManyToManyField(Hashtag, related_name='posts')
+    hashtags = models.ForeignKey(Hashtag, related_name='posts', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.title
