@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import BoardPost, BoardComment, BoardPostLike, Hashtag
 from campus.models import User
+from django.core.exceptions import ObjectDoesNotExist
 
 class HashtagSerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,7 +9,6 @@ class HashtagSerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 class BoardPostSerializer(serializers.ModelSerializer):
-    hashtags = HashtagSerializer(many=True)
 
     class Meta:
         model = BoardPost
@@ -31,7 +31,7 @@ class AuthorSerializer(serializers.ModelSerializer):
         fields = ('username', 'nickname', 'grade')
 
 class PostCommentSerializer(serializers.ModelSerializer):
-    comment_user = AuthorSerializer(source='user', read_only=True)
+    # comment_user = AuthorSerializer(source='user', read_only=True)
     class Meta:
         model = BoardComment
         fields = ('comment_user', 'content', 'created_at')
@@ -40,3 +40,44 @@ class PostUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = BoardPost
         fields = '__all__'
+
+
+class PostsByHashtagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Hashtag
+        fields = '__all__'
+
+
+
+
+class GetAllBoardPostsSerializer(serializers.ModelSerializer):
+    hashtag_name = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+    user_grade = serializers.SerializerMethodField()
+    user_name = serializers.SerializerMethodField()
+
+
+    class Meta:
+        model = BoardPost
+        fields = ['user_name', 'user_grade', 'content', 'video', 'video_thumbnail', 'created_at', 'hashtag_name', 'is_liked']
+        
+
+    def get_hashtag_name(self, obj):
+        return obj.hashtags.name
+    
+    def get_is_liked(self, obj):
+        user = self.context.get('user')
+        try: 
+            boardpostlike = BoardPostLike.objects.get(user=user, post=obj)
+        except ObjectDoesNotExist:
+            return False
+        
+        return True         
+    
+    def get_user_name(self, obj):
+        user = self.context.get('user')
+        return user.nickname
+    
+    def get_user_grade(self, obj):
+        user = self.context.get('user')
+        return user.grade

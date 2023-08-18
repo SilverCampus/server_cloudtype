@@ -608,7 +608,7 @@ def get_course_list_completion_rate(request): # 쿼리 파라미터로 받아야
     video_list = course.video.all() # 역참조로 course와 연결된 비디오들 다 가져오기
     
     # 수강률을 계산하기 위해 completion_rate 메서드를 사용
-    completion_rate = course.completion_rate(user)
+    completion_rate = round(course.completion_rate(user), 1)
 
     # 각 비디오가 수강 완료되었는지 여부 넣어서 확인
     video_completion_data = []

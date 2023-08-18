@@ -45,16 +45,22 @@ class CategorySerializer(serializers.ModelSerializer):
 class CourseSerializer(serializers.ModelSerializer):
     video_count = serializers.SerializerMethodField() # video_count 필드 추가
     instructor = serializers.SerializerMethodField()
+    category_name = serializers.SerializerMethodField()
     # is_this_instructor = serializers.SerializerMethodField()
     class Meta:
         model = Course
-        fields = ['id', 'title', 'price', 'description', 'instructor', 'category', 'thumbnail', 'is_live', 'video_count', 'credits'] # video_count 필드를 포함
+        fields = ['id', 'title', 'price', 'description', 'instructor', 'category_name', 'thumbnail', 'is_live', 'video_count', 'credits'] # video_count 필드를 포함
         
     def get_video_count(self, obj):
         return obj.video.count() # obj는 현재 Course 인스턴스입니다. video_count 메서드를 호출해 개수를 반환합니다.
 
     def get_instructor(self, obj):
         return obj.instructor.nickname
+    
+    def get_category_name(self, obj):
+        return obj.category.name
+
+
 
 class BasicCourceInfoSerializer(serializers.ModelSerializer):
     
@@ -199,9 +205,10 @@ class PurchasedCoursesSerializer(serializers.ModelSerializer):
     video_count = serializers.SerializerMethodField() # video_count 시리얼라이즈 필드 추가
     completion_rate = serializers.SerializerMethodField() # completion_rate 시리얼라이즈 필드 추가
     instructor = serializers.SerializerMethodField()
+    category_name = serializers.SerializerMethodField()
     class Meta:
         model = Course
-        fields = ['id', 'title', 'price', 'description', 'instructor', 'category', 'thumbnail', 'is_live', 'video_count', 'credits', 'completion_rate'] 
+        fields = ['id', 'title', 'price', 'description', 'instructor', 'category_name', 'thumbnail', 'is_live', 'video_count', 'credits', 'completion_rate'] 
         # video_count, completion_rate 시리얼라이즈 필드 포함
 
     def get_video_count(self, obj):
@@ -209,10 +216,13 @@ class PurchasedCoursesSerializer(serializers.ModelSerializer):
     
     def get_completion_rate(self, obj):
         user = self.context['request'].user  # 현재 로그인해 있는 사람의 정보를 가져옴!!
-        return obj.completion_rate(user)
+        return round(obj.completion_rate(user), 2)
     
     def get_instructor(self, obj):
         return obj.instructor.nickname
+    
+    def get_category_name(self, obj):
+        return obj.category.name
 
 class EnrollSerializer(serializers.ModelSerializer):
     class Meta:
@@ -227,15 +237,20 @@ class LikeSerializer(serializers.ModelSerializer):
 class LikedCoursesSerializer(serializers.ModelSerializer):
     video_count = serializers.SerializerMethodField() # video_count 필드 추가
     instructor = serializers.SerializerMethodField()
+    category_name = serializers.SerializerMethodField()
     class Meta:
         model = Course
-        fields = ['id', 'title', 'price', 'description', 'instructor', 'category', 'thumbnail', 'is_live', 'video_count', 'credits'] # video_count 필드를 포함
+        fields = ['id', 'title', 'price', 'description', 'instructor', 'category_name', 'thumbnail', 'is_live', 'video_count', 'credits'] # video_count 필드를 포함
 
     def get_video_count(self, obj):
         return obj.video.count() # obj는 현재 Course 인스턴스입니다. video_count 메서드를 호출해 개수를 반환합니다.
 
     def get_instructor(self, obj):
         return obj.instructor.nickname
+    
+    def get_category_name(self, obj):
+        return obj.category.name
+    
 
 class LaunchCourseSerializer(serializers.ModelSerializer):
     video_count = serializers.SerializerMethodField() # video_count 필드 추가
@@ -289,9 +304,22 @@ class GetCourseVideoSerializer(serializers.ModelSerializer):
     
 
 class GetRecentlyWatchedCoursesSerializer(serializers.ModelSerializer):
+    video_count = serializers.SerializerMethodField() # video_count 필드 추가
+    instructor = serializers.SerializerMethodField()
+    category_name = serializers.SerializerMethodField()
+    # is_this_instructor = serializers.SerializerMethodField()
     class Meta:
         model = Course
-        fields = '__all__'
+        fields = ['id', 'title', 'price', 'description', 'instructor', 'category_name', 'thumbnail', 'is_live', 'video_count', 'credits'] # video_count 필드를 포함
+        
+    def get_video_count(self, obj):
+        return obj.video.count() # obj는 현재 Course 인스턴스입니다. video_count 메서드를 호출해 개수를 반환합니다.
+
+    def get_instructor(self, obj):
+        return obj.instructor.nickname
+    
+    def get_category_name(self, obj):
+        return obj.category.name
 
 
 class VideoCompletionSerializer(serializers.ModelSerializer):
