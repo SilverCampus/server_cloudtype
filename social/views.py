@@ -13,6 +13,12 @@ from django.core.files import File
 from django.core.files.base import ContentFile
 from rest_framework.generics import ListAPIView
 
+import boto3
+from moviepy.editor import VideoFileClip
+from django.conf import settings
+import tempfile
+
+
 
 class BoardPostViewSet(viewsets.ModelViewSet):
     queryset = BoardPost.objects.all()
@@ -95,50 +101,68 @@ def add_like(request):
     serializer = BoardPostLikeSerializer(like)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-# 4. 로그인한 사용자가 새로운 게시글을 게시하는 API
+
+# 4번
 @api_view(['POST'])
 @permission_classes((permissions.IsAuthenticated,))
 def post_upload(request):
     user = request.user
 
-    # 프론트엔드로부터 넘겨받는 정보: title, content, image_file, video_file, hashtags
-    title = request.data.get('title')
+    # 프론트엔드로부터 받는 정보
     content = request.data.get('content')
-    image_file = request.FILES.get('image_file')
     video_file = request.FILES.get('video_file')
     hashtags_name = request.data.get('hashtags')
 
-    # # 해시태그 연결
+    # 해시태그 연결
     try:
         hashtag = Hashtag.objects.get(name=hashtags_name)
-        
     except Hashtag.DoesNotExist:
-        hashtag = None   
+        hashtag = None
+
+    # S3 연결
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+    )
+
+    # 비디오 파일 S3에 업로드
+    video_path = 'videos/' + str(video_file)
+    s3_client.upload_fileobj(video_file, settings.AWS_STORAGE_BUCKET_NAME, video_path, ExtraArgs={'ContentType': video_file.content_type})
+    video_url = f'{video_path}'
+
+    # 영상에서 썸네일 생성
+    if video_file:
+        # 임시 파일에 업로드 된 비디오 파일을 저장
+        temp_video_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+        for chunk in video_file.chunks():
+            temp_video_file.write(chunk)
+        temp_video_file.flush()  # 파일에 쓰기 작업을 강제로 완료
+        temp_video_file.close()  # 파일 닫기
+
+        with VideoFileClip(temp_video_file.name) as clip:
+            thumbnail_path = os.path.join("/tmp", f"thumb_{os.path.basename(video_file.name)}.png")
+            clip.save_frame(thumbnail_path, t=1.00)
+
+            # S3에 썸네일 업로드
+            with open(thumbnail_path, 'rb') as thumb_file:
+                thumb_s3_path = 'thumbnails/' + os.path.basename(thumbnail_path)
+                s3_client.upload_fileobj(thumb_file, settings.AWS_STORAGE_BUCKET_NAME, thumb_s3_path, ExtraArgs={'ContentType': 'image/png'})
+                thumbnail_url = f'{thumb_s3_path}'
+
+            os.remove(thumbnail_path) # 임시 썸네일 파일 삭제
+
+        os.unlink(temp_video_file.name) # 임시 비디오 파일 삭제
 
     # 게시물 저장
     post = BoardPost(
-        user = user,
-        title = title,
-        content = content,
-        image = image_file,
-        video = video_file,
-        hashtags = hashtag
+        user=user,
+        # title=title,
+        content=content,
+        video=video_url,
+        # video_thumbnail=thumbnail_url,
+        hashtags=hashtag
     )
-    
-    post.save() # BoardPost 객체 저장
-
-
-    # # 영상에서 썸네일 생성
-    # if video_file:
-    #     with VideoFileClip(video_file.temporary_file_path()) as clip:
-    #         thumbnail_path = os.path.join("/tmp", f"thumb_{os.path.basename(video_file.name)}.png")
-    #         clip.save_frame(thumbnail_path, t=1.00)  # 1초 지점의 프레임 저장
-
-    #         with open(thumbnail_path, 'rb') as thumb_file:
-    #             # 썸네일을 Django의 FileField로 변환하여 저장
-    #             post.image.save(f"thumb_{video_file.name}.png", ContentFile(thumb_file.read()))
-    #             os.remove(thumbnail_path)  # 임시 썸네일 파일 삭제
-
     post.save()
 
     serializer = PostUploadSerializer(post)
